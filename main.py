@@ -5,12 +5,7 @@ from pydantic import BaseModel
 from typing import List
 from socket import getfqdn
 
-
 rc = RemoteControl(host="127.0.0.1", port=8953)
-ch_root = rc.send_command("get_option chroot")
-log_file = ch_root + rc.send_command("get_option logfile")
-anchor_db_path = rc.send_command("get_option anchor-zones-db")
-print(f"Log file: {log_file}, anchor db path: {anchor_db_path}")
 
 app = FastAPI(
     title="Unbound API",
@@ -54,6 +49,8 @@ class LogResponse(BaseModel):
          summary="Get unbound runtime log",
          description="Get the last N lines of the log file")
 def get_log(limit: int = Query(default=10, description="The last N lines of the log")):
+    ch_root = rc.send_command("get_option chroot")
+    log_file = ch_root + rc.send_command("get_option logfile")
     with open(log_file) as f:
         lines = f.readlines()
     total = len(lines)
@@ -69,6 +66,7 @@ def get_log(limit: int = Query(default=10, description="The last N lines of the 
           summary="Add monitor zones",
           description="Upsert monitor zones into the database, replace if exists")
 def add_zones(request: AddZonesRequest):
+    anchor_db_path = rc.send_command("get_option anchor-zones-db")
     # Upsert zones into the database
     sql = """
         INSERT INTO zone(name) VALUES (?)
@@ -85,6 +83,7 @@ def add_zones(request: AddZonesRequest):
          summary="List monitor zones",
          description="List all monitor zones in the database")
 def list_zones():
+    anchor_db_path = rc.send_command("get_option anchor-zones-db")
     db = sqlite3.connect(anchor_db_path)
     cursor = db.cursor()
     cursor.execute("SELECT * FROM zone")
@@ -96,6 +95,7 @@ def list_zones():
           summary="Remove monitor zones",
           description="Remove monitor zones from the database")
 def remove_zones(request: DeleteZonesRequest):
+    anchor_db_path = rc.send_command("get_option anchor-zones-db")
     sql = "DELETE FROM zone WHERE name = ?"
     db = sqlite3.connect(anchor_db_path)
     cursor = db.cursor()
@@ -108,6 +108,7 @@ def remove_zones(request: DeleteZonesRequest):
           summary="Replace monitor zones",
           description="Replace monitor zones in the database")
 def replace_zones(request: ReplaceZonesRequest):
+    anchor_db_path = rc.send_command("get_option anchor-zones-db")
     db = sqlite3.connect(anchor_db_path)
     cursor = db.cursor()
     cursor.execute("DELETE FROM zone")
