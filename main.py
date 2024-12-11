@@ -3,7 +3,7 @@ import sqlite3
 from fastapi import FastAPI, status, Query
 from pydantic import BaseModel
 from typing import List
-from socket import getfqdn
+from fqdn import FQDN
 
 rc = RemoteControl(host="127.0.0.1", port=8953)
 
@@ -74,7 +74,7 @@ def add_zones(request: AddZonesRequest):
     """
     db = sqlite3.connect(anchor_db_path)
     cursor = db.cursor()
-    cursor.executemany(sql, [(getfqdn(zone),) for zone in request.zones])
+    cursor.executemany(sql, [(FQDN(zone).absolute,) for zone in request.zones])
     db.commit()
     return {"status": "ok"}
 
@@ -99,7 +99,7 @@ def remove_zones(request: DeleteZonesRequest):
     sql = "DELETE FROM zone WHERE name = ?"
     db = sqlite3.connect(anchor_db_path)
     cursor = db.cursor()
-    cursor.executemany(sql, [(getfqdn(zone),) for zone in request.zones])
+    cursor.executemany(sql, [(FQDN(zone).absolute,) for zone in request.zones])
     db.commit()
     return {"status": "ok"}
 
@@ -116,7 +116,7 @@ def replace_zones(request: ReplaceZonesRequest):
         INSERT INTO zone(name) VALUES (?)
         ON CONFLICT(name) DO UPDATE SET name=excluded.name;
     """
-    cursor.executemany(sql, [(getfqdn(zone),) for zone in request.zones])
+    cursor.executemany(sql, [(FQDN(zone).absolute,) for zone in request.zones])
     db.commit()
     return {"status": "ok"}
 
