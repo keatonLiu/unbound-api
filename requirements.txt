@@ -1,3 +1,4 @@
 unbound_console
 fastapi
 uvicorn
+fqdn
